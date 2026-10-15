@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StudyBloom 🌷</title>
+
+<style>
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: linear-gradient(135deg,#ffe6f0,#eee5ff,#e0f5ff);
+  color: #574568;
+}
+header {
+  text-align: center;
+  padding: 30px 15px;
+  background: #ffffffaa;
+  border-radius: 0 0 30px 30px;
+}
+h1 { color: #986ac1; font-size: 40px; }
+main { max-width: 850px; margin: 25px auto; padding: 15px; }
+section {
+  background: white;
+  padding: 22px;
+  border-radius: 22px;
+  margin-bottom: 20px;
+  box-shadow: 0 5px 15px #bba5cc33;
+}
+input, select, textarea {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  margin: 8px 0 15px;
+  border: 2px solid #eadcf7;
+  border-radius: 12px;
+  box-sizing: border-box;
+  font-size: 15px;
+}
+button {
+  padding: 12px;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: bold;
+  margin: 4px;
+}
+.guardar { background: #bba2e8; color: white; width: 100%; }
+.completar { background: #d8f0df; color: #426b4c; }
+.borrar { background: #ffe0e9; color: #a34b6a; }
+.actividad {
+  padding: 15px;
+  margin: 12px 0;
+  border: 2px solid #eddef8;
+  border-left: 6px solid #c4a5ed;
+  border-radius: 15px;
+  overflow-wrap: anywhere;
+}
+.hecha { opacity: .6; }
+.hecha h3 { text-decoration: line-through; }
+#reloj { font-size: 20px; font-weight: bold; }
+footer { text-align: center; padding: 25px; }
+</style>
+</head>
+
+<body>
+
+<header>
+  <div style="font-size:35px">🌷 📚 🦋 ✨</div>
+  <h1>StudyBloom</h1>
+  <p>¡Tu agenda escolar bonita! 💗</p>
+  <p>Organiza tus tareas y alcanza tus sueños.</p>
+  <p id="fechaActual"></p>
+  <div id="reloj"></div>
+</header>
+
+<main>
+
+<section>
+  <h2>🌸 ¡Bienvenida!</h2>
+  <p>Aquí puedes organizar tus exámenes, tareas,
+  exposiciones y trabajos escolares.</p>
+  <p>📝 Pendientes: <strong id="pendientes">0</strong></p>
+  <p>🌟 Terminadas: <strong id="terminadas">0</strong></p>
+</section>
+
+<section>
+  <h2>💌 Agregar actividad</h2>
+
+  <form id="formulario">
+    <label>Nombre de la actividad</label>
+    <input id="titulo" placeholder="Ej. Examen de química" required>
+
+    <label>Materia</label>
+    <input id="materia" placeholder="Ej. Ciencias naturales" required>
+
+    <label>Tipo de actividad</label>
+    <select id="tipo">
+      <option>📝 Examen</option>
+      <option>📚 Tarea</option>
+      <option>🎤 Exposición</option>
+      <option>🎨 Trabajo</option>
+      <option>⭐ Otro</option>
+    </select>
+
+    <label>Fecha</label>
+    <input id="fecha" type="date" required>
+
+    <label>Hora</label>
+    <input id="hora" type="time" required>
+
+    <label>Detalles o temas por estudiar</label>
+    <textarea id="detalles" placeholder="¿Qué debes preparar?"></textarea>
+
+    <button class="guardar" type="submit">
+      💖 Guardar actividad
+    </button>
+  </form>
+</section>
+
+<section>
+  <h2>🗓️ Mi agenda escolar</h2>
+  <div id="lista"></div>
+</section>
+
+<section>
+  <h2>✨ Mi frase del día</h2>
+  <p id="frase">¡Tú puedes lograr todo lo que te propongas! 🌈</p>
+  <button onclick="nuevaFrase()">💜 Otra frase</button>
+</section>
+
+</main>
+
+<footer>
+  🌷 StudyBloom 🌷<br>
+  Organiza tu tiempo, aprende y brilla. 💕
+</footer>
+
+<script>
+let actividades = [];
+
+try {
+  actividades = JSON.parse(
+    localStorage.getItem("studyBloom") || "[]"
+  );
+  if (!Array.isArray(actividades)) actividades = [];
+} catch(e) {
+  actividades = [];
+}
+
+function guardarDatos() {
+  try {
+    localStorage.setItem("studyBloom", JSON.stringify(actividades));
+  } catch(e) {
+    alert("No fue posible guardar los datos en este navegador.");
+  }
+}
+
+function escapar(texto) {
+  return String(texto || "").replace(/[&<>"']/g, c => ({
+    "&":"&amp;", "<":"&lt;", ">":"&gt;",
+    '"':"&quot;", "'":"&#39;"
+  })[c]);
+}
+
+function actualizarReloj() {
+  const ahora = new Date();
+
+  document.getElementById("fechaActual").textContent =
+    ahora.toLocaleDateString("es-CO", {
+      weekday:"long", day:"numeric",
+      month:"long", year:"numeric"
+    });
+
+  document.getElementById("reloj").textContent =
+    "🕒 " + ahora.toLocaleTimeString("es-CO");
+
+  mostrarActividades();
+}
+
+document.getElementById("formulario").addEventListener("submit", function(e) {
+  e.preventDefault();
+
+  const fecha = document.getElementById("fecha").value;
+  const hora = document.getElementById("hora").value;
+
+  if (new Date(fecha + "T" + hora) < new Date()) {
+    if (!confirm("La fecha y hora ya pasaron. ¿Quieres guardar la actividad?")) {
+      return;
+    }
+  }
+
+  actividades.push({
+    id: Date.now(),
+    titulo: document.getElementById("titulo").value.trim(),
+    materia: document.getElementById("materia").value.trim(),
+    tipo: document.getElementById("tipo").value,
+    fecha: fecha,
+    hora: hora,
+    detalles: document.getElementById("detalles").value.trim(),
+    hecha: false
+  });
+
+  guardarDatos();
+  this.reset();
+  mostrarActividades();
+  alert("¡Actividad guardada! 🌷");
+});
+
+function mostrarActividades() {
+  const lista = document.getElementById("lista");
+  lista.innerHTML = "";
+
+  actividades.sort((a,b) =>
+    (a.fecha + a.hora).localeCompare(b.fecha + b.hora)
+  );
+
+  let pendientes = 0;
+  let terminadas = 0;
+
+  actividades.forEach(a => {
+    if (a.hecha) terminadas++;
+    else pendientes++;
+
+    const tarjeta = document.createElement("article");
+    tarjeta.className = "actividad" + (a.hecha ? " hecha" : "");
+
+    const fechaBonita = new Date(a.fecha + "T12:00:00")
+      .toLocaleDateString("es-CO", {
+        weekday:"long", day:"numeric", month:"long", year:"numeric"
+      });
+
+    const diferencia = new Date(a.fecha + "T" + a.hora) - new Date();
+    let cuenta = "⏰ La hora programada ya pasó";
+
+    if (diferencia > 0) {
+      const dias = Math.floor(diferencia / 86400000);
+      const horas = Math.floor((diferencia % 86400000) / 3600000);
+      const minutos = Math.floor((diferencia % 3600000) / 60000);
+      cuenta = ⏳ Faltan ${dias} días, ${horas} horas y ${minutos} minutos;
+    }
+
+    tarjeta.innerHTML = `
+      <h3>${escapar(a.titulo)}</h3>
+      <p>📚 Materia: ${escapar(a.materia)}</p>
+      <p>🏷️ ${escapar(a.tipo)}</p>
+      <p>📅 ${fechaBonita}</p>
+      <p>🕒 ${escapar(a.hora)}</p>
+      <p>📝 ${escapar(a.detalles) || "Sin detalles adicionales"}</p>
+      <p>${a.hecha ? "🌟 Actividad terminada" : escapar(cuenta)}</p>
+      <button class="completar" data-id="${a.id}">
+        ${a.hecha ? "↩️ Pendiente" : "✅ Terminar"}
+      </button>
+      <button class="borrar" data-borrar="${a.id}">
+        🗑️ Eliminar
+      </button>
+    `;
+
+    lista.appendChild(tarjeta);
+  });
+
+  document.getElementById("pendientes").textContent = pendientes;
+  document.getElementById("terminadas").textContent = terminadas;
+
+  if (actividades.length === 0) {
+    lista.innerHTML = "<p>🌸 Aún no tienes actividades. ¡Agrega la primera!</p>";
+  }
+}
+
+document.getElementById("lista").addEventListener("click", function(e) {
+  const botonTerminar = e.target.closest("[data-id]");
+  const botonBorrar = e.target.closest("[data-borrar]");
+
+  if (botonTerminar) {
+    const a = actividades.find(x => x.id === Number(botonTerminar.dataset.id));
+    if (a) a.hecha = !a.hecha;
+    guardarDatos();
+    mostrarActividades();
+  }
+
+  if (botonBorrar) {
+    const id = Number(botonBorrar.dataset.borrar);
+    if (confirm("¿Quieres eliminar esta actividad?")) {
+      actividades = actividades.filter(a => a.id !== id);
+      guardarDatos();
+      mostrarActividades();
+    }
+  }
+});
+
+function nuevaFrase() {
+  const frases = [
+    "🌷 ¡Cada esfuerzo cuenta!",
+    "🦋 Confía en ti y sigue aprendiendo.",
+    "💜 Organizarte hoy te ayudará mañana.",
+    "🌈 ¡Tú eres capaz de lograr grandes cosas!",
+    "📚 Paso a paso también se llega lejos.",
+    "✨ Tus sueños merecen tu esfuerzo."
+  ];
+
+  document.getElementById("frase").textContent =
+    frases[Math.floor(Math.random() * frases.length)];
+}
+
+actualizarReloj();
+setInterval(actualizarReloj, 60000);
+</script>
+
+</body>
+</html>
